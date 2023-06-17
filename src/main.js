@@ -10,6 +10,33 @@ const api = axios.create(
     }
 )
 
+function likedMoviesList() {
+    const item = JSON.parse(localStorage.getItem('liked_movies'));
+    let movies;
+
+    if (item) {
+        movies = item;
+    } else {
+        movies = {};
+    }
+
+    return movies;
+}
+
+function likeMovie(movie) {
+    // movie.id
+    const likedMovies = likedMoviesList();
+
+    if (likedMovies[movie.id]) {
+        likedMovies[movie.id] = undefined;
+    } else {
+        likedMovies[movie.id] = movie;
+    }
+
+    localStorage.setItem('liked_movies', JSON.stringify(likedMovies));
+}
+
+
 //Utils
 
 const lazyLoader = new IntersectionObserver((entries) => {
@@ -30,7 +57,7 @@ function createMovies(movies, container, { lazyLoad = false, clean = true } = {}
         const movieContainer = document.createElement('div');
         movieContainer.classList.add('movie-container');
 
-       
+
 
         const movieImg = document.createElement('img');
         movieImg.classList.add('movie-img');
@@ -43,12 +70,14 @@ function createMovies(movies, container, { lazyLoad = false, clean = true } = {}
         movieImg.addEventListener('click', () => {
             location.hash = `#movie=${movie.id}`
         })
-        
+
         const movieBtn = document.createElement('button')
         movieBtn.classList.add('movie-btn')
-        movieBtn.addEventListener('click',()=>{
+        likedMoviesList()[movie.id] && movieBtn.classList.add('movie-btn--liked');
+        movieBtn.addEventListener('click', () => {
             movieBtn.classList.toggle('movie-btn--liked')
-            //Deberiamoas agregar a LS
+            likeMovie(movie)
+            getLikedMovies()
         })
 
         if (lazyLoad) {
@@ -123,35 +152,35 @@ async function getMoviesByCategory(id) {
         }
     })
 
-    maxPage= data.total_pages
+    maxPage = data.total_pages
     const movies = data.results;
-    createMovies(movies, genericSection, {lazyLoad: true })
+    createMovies(movies, genericSection, { lazyLoad: true })
 }
 function getPaginatedMoviesByCategory(id) {
-   
-    return async function (){
+
+    return async function () {
         const {
-        scrollTop,
-        scrollHeight,
-        clientHeight
-    } = document.documentElement;
+            scrollTop,
+            scrollHeight,
+            clientHeight
+        } = document.documentElement;
 
-    const scrollIsBottom = (scrollTop + clientHeight) >= (scrollHeight - 15)
-    const pageIsNotMax = page < maxPage
-    if (scrollIsBottom && pageIsNotMax) {
-        page++
-        const { data } = await api('discover/movie', {
-            params: {
-                language: 'en-US',
-                page,
-                with_genres: id
-            }
-        })
-    
+        const scrollIsBottom = (scrollTop + clientHeight) >= (scrollHeight - 15)
+        const pageIsNotMax = page < maxPage
+        if (scrollIsBottom && pageIsNotMax) {
+            page++
+            const { data } = await api('discover/movie', {
+                params: {
+                    language: 'en-US',
+                    page,
+                    with_genres: id
+                }
+            })
 
-        const movies = data.results;
-        createMovies(movies, genericSection,{lazyLoad:true, clean:false})
-    } 
+
+            const movies = data.results;
+            createMovies(movies, genericSection, { lazyLoad: true, clean: false })
+        }
     }
 }
 
@@ -167,35 +196,35 @@ async function getMoviesBySearch(query) {
 
 
     const movies = data.results;
-    maxPage= data.total_pages
+    maxPage = data.total_pages
     createMovies(movies, genericSection)
     console.log(data)
 }
 function getPaginatedMoviesBySearch(query) {
-   
-    return async function (){
+
+    return async function () {
         const {
-        scrollTop,
-        scrollHeight,
-        clientHeight
-    } = document.documentElement;
+            scrollTop,
+            scrollHeight,
+            clientHeight
+        } = document.documentElement;
 
-    const scrollIsBottom = (scrollTop + clientHeight) >= (scrollHeight - 15)
-    const pageIsNotMax = page < maxPage
-    if (scrollIsBottom && pageIsNotMax) {
-        page++
-        const { data } = await api('search/movie', {
-            params: {
-                language: 'en-US',
-                page,
-                query: query,
-            }
-        })
-    
+        const scrollIsBottom = (scrollTop + clientHeight) >= (scrollHeight - 15)
+        const pageIsNotMax = page < maxPage
+        if (scrollIsBottom && pageIsNotMax) {
+            page++
+            const { data } = await api('search/movie', {
+                params: {
+                    language: 'en-US',
+                    page,
+                    query: query,
+                }
+            })
 
-        const movies = data.results;
-        createMovies(movies, genericSection,{lazyLoad:true, clean:false})
-    } 
+
+            const movies = data.results;
+            createMovies(movies, genericSection, { lazyLoad: true, clean: false })
+        }
     }
 }
 
@@ -204,7 +233,7 @@ async function getTrendingMovies() {
     const { data } = await api('movie/popular?language=en-US&page=1')
 
     const movies = data.results;
-    maxPage= data.total_pages
+    maxPage = data.total_pages
 
     createMovies(movies, genericSection, { lazyLoad: true, clean: true })
 
@@ -237,7 +266,7 @@ async function getPaginatedMovies() {
         })
 
         const movies = data.results;
-        createMovies(movies, genericSection,{lazyLoad:true, clean:false})
+        createMovies(movies, genericSection, { lazyLoad: true, clean: false })
     }
     // const btnLoadMore = document.createElement('button');
     // btnLoadMore.innerText = 'Cargar mas'
@@ -272,3 +301,12 @@ async function getRelatedMoviesId(id) {
 
     createMovies(relatedMovies, relatedMoviesContainer);
 }
+
+function getLikedMovies() {
+    const likedMovies = likedMoviesList();
+    const moviesArray = Object.values(likedMovies);
+  
+    createMovies(moviesArray, likedMoviesListArticle, { lazyLoad: true, clean: true });
+    
+    console.log(likedMovies)
+  }
